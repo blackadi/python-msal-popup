@@ -7,7 +7,7 @@ This Flask application demonstrates Microsoft Entra ID (Azure AD) authentication
 1. Create an app registration in Microsoft Entra ID (Azure AD):
    - Go to Azure Portal > Microsoft Entra ID > App registrations
    - Create a new registration
-   - Set the redirect URI to `http://localhost:5000/getAToken`
+   - Set the redirect URI to `http://localhost:5000/getAToken` as **Web**
    - Note down the Client ID and Tenant ID
    - Create a client secret and note it down
 
