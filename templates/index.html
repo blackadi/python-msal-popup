@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSAL Python Popup Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-center mb-6">MSAL Python Authentication</h1>
+            
+            {% if user %}
+                <div class="text-center">
+                    <p class="text-right">
+                        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors">
+                            Logout
+                        </button>
+                    </p>
+                    <p class="mb-4">Welcome, {{ user.name }}!</p>
+                    <p class="text-sm text-gray-600 mb-4">Access token info can be found below</p>
+                    <div class="mb-4 p-2 bg-gray-50 rounded">
+                        <p class="text-xs text-gray-500 mb-1">Username:</p>
+                        <p class="text-xs text-gray-700 break-all">{{ user.username }}</p>
+                        
+                    </div>
+                    
+                    
+                </div>
+            <!-- Decode token -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-4 bg-white shadow-md rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">Access Token</h2>
+                    <pre class="whitespace-pre-wrap break-words bg-gray-50 p-4 rounded-lg text-sm">{{ access_token if access_token else 'No Token Provided' }}</pre>
+                </div>
+    
+                <div class="relative">
+                    <button onclick="openModal()" class="absolute top-0 right-0 mt-2 mr-2 bg-blue-500 text-white px-4 py-2 rounded">Show More!</button>
+                    <div class="p-4 bg-white shadow-md rounded-lg">
+                        <h2 class="text-xl font-semibold mb-4">Decoded Claims</h2>
+                        <pre class="whitespace-pre-wrap break-words bg-gray-50 p-4 rounded-lg text-sm">
+                            {% if decoded_claims %}
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full bg-white border border-gray-200">
+                                    <thead>
+                                        <tr>
+                                            <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Claim</th>
+                                            <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        {% for claim, value in decoded_claims.items() %}
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ claim }}</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ value }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                                No Decoded Claims Available
+                            {% endif %}
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <div id="myModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+                <div class="bg-white rounded-lg shadow-lg w-11/12 h-5/6 overflow-auto p-6 relative">
+                    <span onclick="closeModal()" class="absolute top-0 right-0 mt-2 mr-2 text-gray-500 cursor-pointer text-2xl">&times;</span>
+                    <h1 class="text-2xl font-bold mb-4">Decoded Claims</h1>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Claim</th>
+                                    <th class="px-6 py-3 border-b border-gray-200 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for claim, value in decoded_claims.items() %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ claim }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ value }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- End Decode token -->
+            {% else %}
+                <div class="text-center">
+                    <p class="mb-4">Please sign in to continue</p>
+                    <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        Sign in with Microsoft
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function login() {
+            fetch('/login')
+                .then(response => response.json())
+                .then(data => {
+                    const popup = window.open(
+                        data.auth_url,
+                        'Login',
+                        'width=600,height=600'
+                    );
+
+                    // Poll to check if authentication is complete
+                    const pollTimer = setInterval(() => {
+                        if (popup.closed) {
+                            clearInterval(pollTimer);
+                            checkAuthStatus();
+                        }
+                    }, 500);
+                });
+        }
+
+        function checkAuthStatus() {
+            fetch('/check_auth')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        window.location.reload();
+                    }
+                });
+        }
+
+        function logout() {
+            window.location.href = '/logout';
+        }
+
+        document.querySelectorAll('[data-tab]').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.querySelectorAll('[data-tab]').forEach(btn => btn.classList.remove('bg-gray-500'));
+                button.classList.add('bg-gray-500');
+                
+                const targetTab = document.getElementById(button.getAttribute('data-tab'));
+                if (targetTab) targetTab.classList.remove('hidden');
+            });
+        });
+
+        function openModal() {
+            document.getElementById("myModal").classList.remove("hidden");
+        }
+        
+        function closeModal() {
+            document.getElementById("myModal").classList.add("hidden");
+        }
+    </script>
+</body>
+</html>
